@@ -8,7 +8,7 @@ spec:
     - name: deployment-name
       description: name of the deployment to be patched
       type: string
-      default: testdeployment
+      default: testapp
     - name: git-url
       description: url of the git repo for the code of deployment
       type: string
@@ -65,6 +65,27 @@ spec:
       workspaces:
         - name: source
           workspace: app-source
+
+    - name: scan-sourcecode
+      params:
+        - name: ARGS
+          value:
+            - '--exit-code'
+            - '1'
+            - '--severity'
+            - $(params.SEVERITY_LEVELS)
+            - filesystem
+        - name: IMAGE_PATH
+          value: $(params.LOCAL_SCAN_PATH)
+      runAfter:
+        - ls-workspace
+      taskRef:
+        kind: Task
+        name: trivy-scanner
+      workspaces:
+        - name: manifest-dir
+          workspace: app-source
+
 #    - name: unit-tests
 #      taskRef:
 #        name: maven
@@ -79,7 +100,8 @@ spec:
 #      params:
 #        - name: GOALS
 #          value: 
-#            - package
+#            - test
+
     - name: build-jar
       taskRef:
         name: maven
@@ -89,12 +111,14 @@ spec:
           value:
             - package
       runAfter:
-        - ls-workspace
+        - scan-sourcecode
+#        - unit-tests
       workspaces:
         - name: source
           workspace: app-source
         - name: maven-settings
           workspace: maven-settings
+
     - name: build-image
       params:
         - name: IMAGE
@@ -108,7 +132,7 @@ spec:
         - name: source
           workspace: app-source
 
-    - name: scan-build-artifact
+    - name: scan-build-image
       params:
         - name: ARGS
           value:
@@ -116,9 +140,9 @@ spec:
             - '1'
             - '--severity'
             - $(params.SEVERITY_LEVELS)
-            - filesystem
+            - image
         - name: IMAGE_PATH
-          value: $(params.LOCAL_SCAN_PATH)
+          value: $(params.IMAGE)
       runAfter:
         - build-image
       taskRef:
@@ -128,23 +152,16 @@ spec:
         - name: manifest-dir
           workspace: app-source
 
-#    - name: apply-manifests
-#      runAfter:
-#        - build-image
-#      taskRef:
-#        kind: Task
-#        name: apply-manifests
-#      workspaces:
-#        - name: source
-#          workspace: shared-workspace
-#    - name: update-deployment
-#      params:
-#        - name: deployment
-#          value: $(params.deployment-name)
-#        - name: IMAGE
-#          value: $(params.IMAGE)
-#      runAfter:
-#        - apply-manifests
-#      taskRef:
-#        kind: Task
-#        name: update-deployment
+    - name: update-deployment
+      params:
+        - name: deployment
+          value: $(params.deployment-name)
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: IMAGEDIGEST
+          value: $(tasks.build-image.results.IMAGE_DIGEST)
+      runAfter:
+        - scan-build-image
+      taskRef:
+        kind: Task
+        name: update-deployment
