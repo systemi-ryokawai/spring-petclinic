@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: build-and-deploy-pipelinerun
+  namespace: project2
+  labels:
+    tekton.dev/pipeline: build-and-deploy
+spec:
+  params:
+    - name: deployment-name
+      value: testdeployment
+    - name: git-url
+      value: 'https://github.com/realglobe-automated/spring-petclinic.git'
+    - name: git-revision
+      value: main
+    - name: IMAGE
+      value: 'image-registry.openshift-image-registry.svc:5000/project2/testimage'
+    - name: SUBDIR
+      value: ''
+    - name: LOCAL_SCAN_PATH
+      value: ./
+    - name: SEVERITY_LEVELS
+      value: CRITICAL
+  pipelineRef:
+    name: build-and-deploy
+  serviceAccountName: pipeline
+  timeout: 1h0m0s
+  workspaces:
+    - name: app-source
+      persistentVolumeClaim:
+        claimName: maven-repo-pvc
+    - name: maven-settings
+      persistentVolumeClaim:
+        claimName: maven-repo-pvc

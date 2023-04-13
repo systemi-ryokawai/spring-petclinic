@@ -1,0 +1,17 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ls-source
+spec:
+  steps:
+    - name: lsworkspace
+      image: registry.access.redhat.com/ubi8/ubi-minimal:latest
+      command:
+        - "ls"
+      args:
+        - "-la"
+        - "$(workspaces.source.path)"
+      resources: {}
+  workspaces:
+    - description: The git repo will be cloned onto the volume backing this Workspace.
+      name: source

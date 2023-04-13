@@ -1,0 +1,150 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: build-and-deploy
+  namespace: project2
+spec:
+  params:
+    - name: deployment-name
+      description: name of the deployment to be patched
+      type: string
+      default: testdeployment
+    - name: git-url
+      description: url of the git repo for the code of deployment
+      type: string
+      default: https://github.com/realglobe-automated/spring-petclinic.git
+    - name: git-revision
+      description: revision to be used from repo of the code for deployment
+      default: main
+      type: string
+    - name: IMAGE
+      description: image to be build from the code
+      type: string
+      default: image-registry.openshift-image-registry.svc:5000/project2/testimage
+    - name: SUBDIR
+      description: where to clone the git repo
+      default: ''
+    - default: ./
+      description: image path
+      name: LOCAL_SCAN_PATH
+      type: string
+    - default: CRITICAL
+      description: vulnerability severity level
+      name: SEVERITY_LEVELS
+      type: string
+  workspaces:
+    - name: app-source
+    - name: maven-settings
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: deleteExisting
+          value: 'true'
+        - name: sslVerify
+          value: 'false'
+        - name: noProxy
+          value: 'true'
+        - name: verbose
+          value: 'true'
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: app-source
+    - name: ls-workspace
+      taskRef:
+        name: ls-source
+        kind: Task
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: source
+          workspace: app-source
+#    - name: unit-tests
+#      taskRef:
+#        name: maven
+#        kind: ClusterTask
+#      runAfter:
+#        - ls-workspace
+#      workspaces:
+#        - name: source
+#          workspace: app-source
+#        - name: maven-settings
+#          workspace: maven-settings
+#      params:
+#        - name: GOALS
+#          value: 
+#            - package
+    - name: build-jar
+      taskRef:
+        name: maven
+        kind: ClusterTask
+      params:
+        - name: GOALS
+          value:
+            - package
+      runAfter:
+        - ls-workspace
+      workspaces:
+        - name: source
+          workspace: app-source
+        - name: maven-settings
+          workspace: maven-settings
+    - name: build-image
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+      runAfter:
+        - build-jar
+      taskRef:
+        kind: ClusterTask
+        name: buildah
+      workspaces:
+        - name: source
+          workspace: app-source
+
+    - name: scan-build-artifact
+      params:
+        - name: ARGS
+          value:
+            - '--exit-code'
+            - '1'
+            - '--severity'
+            - $(params.SEVERITY_LEVELS)
+            - filesystem
+        - name: IMAGE_PATH
+          value: $(params.LOCAL_SCAN_PATH)
+      runAfter:
+        - build-image
+      taskRef:
+        kind: Task
+        name: trivy-scanner
+      workspaces:
+        - name: manifest-dir
+          workspace: app-source
+
+#    - name: apply-manifests
+#      runAfter:
+#        - build-image
+#      taskRef:
+#        kind: Task
+#        name: apply-manifests
+#      workspaces:
+#        - name: source
+#          workspace: shared-workspace
+#    - name: update-deployment
+#      params:
+#        - name: deployment
+#          value: $(params.deployment-name)
+#        - name: IMAGE
+#          value: $(params.IMAGE)
+#      runAfter:
+#        - apply-manifests
+#      taskRef:
+#        kind: Task
+#        name: update-deployment
