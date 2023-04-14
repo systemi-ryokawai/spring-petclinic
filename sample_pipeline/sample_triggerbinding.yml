@@ -5,6 +5,6 @@ metadata:
 spec:
   params:
     - name: git-repo-url
-      value: $(body.repository.git_http_url)
+      value: $(body.repository.clone_url)
     - name: git-revision
-      value: $(body.after)
+      value: $(body.pull_request.head.sha)

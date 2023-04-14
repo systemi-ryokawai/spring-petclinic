@@ -6,6 +6,7 @@ spec:
   params:
     - name: git-repo-url
     - name: git-revision
+      default: main
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun

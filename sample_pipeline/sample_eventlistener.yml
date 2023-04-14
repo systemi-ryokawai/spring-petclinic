@@ -11,6 +11,11 @@ spec:
     - bindings:
         - kind: TriggerBinding
           ref: ci-pipeline-binding
+        - name: message
+          value: Hello from the Triggers EventListener!
       name: ci-pipeline
       template:
         ref: ci-pipeline-template
+      interceptors:
+        - github:
+            eventTypes: ["pull_request"]
