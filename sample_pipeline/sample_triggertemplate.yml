@@ -1,0 +1,53 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: ci-pipeline-template
+spec:
+  params:
+    - name: git-repo-url
+    - name: git-revision
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: build-and-deploy-
+      spec:
+        params:
+          - name: deployment-name
+            description: name of the deployment to be patched
+            type: string
+            default: testapp
+          - name: git-url
+            value: $(tt.params.git-repo-url)
+            description: url of the git repo for the code of deployment
+            type: string
+            default: https://github.com/realglobe-automated/spring-petclinic.git
+          - name: git-revision
+            value: $(tt.params.git-revision)
+            description: revision to be used from repo of the code for deployment
+            default: main
+            type: string
+          - name: IMAGE
+            description: image to be build from the code
+            type: string
+            default: image-registry.openshift-image-registry.svc:5000/project2/testimage
+          - name: SUBDIR
+            description: where to clone the git repo
+            default: ''
+          - default: ./
+            description: image path
+            name: LOCAL_SCAN_PATH
+            type: string
+          - default: CRITICAL
+            description: vulnerability severity level
+            name: SEVERITY_LEVELS
+            type: string
+          - name: smtpserver
+            type: string
+            description: secret name for SMTP server information (url, port, password)
+            default: smtp-server-secret
+        pipelineRef:
+          name: build-and-deploy
+        workspaces:
+          - name: app-source
+          - name: maven-settings

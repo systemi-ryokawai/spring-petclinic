@@ -1,0 +1,16 @@
+# https://github.com/tektoncd/triggers/blob/main/docs/eventlisteners.md
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: ci-pipeline
+spec:
+  namespaceSelector: {}
+  resources: {}
+  serviceAccountName: pipeline
+  triggers:
+    - bindings:
+        - kind: TriggerBinding
+          ref: ci-pipeline-binding
+      name: ci-pipeline
+      template:
+        ref: ci-pipeline-template
