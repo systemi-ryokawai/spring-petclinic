@@ -32,6 +32,11 @@ spec:
       description: vulnerability severity level
       name: SEVERITY_LEVELS
       type: string
+    - name: smtpserver
+      type: string
+      description: secret name for SMTP server information (url, port, password)
+      default: smtp-server-secret
+
   workspaces:
     - name: app-source
     - name: maven-settings
@@ -86,6 +91,29 @@ spec:
         - name: manifest-dir
           workspace: app-source
 
+    - name: notify-trivy-source-scan-error
+      when:
+        - input: $(tasks.scan-sourcecode.results.status)
+          operator: in
+          values: ["Failed"]
+      params:
+        - name: smtpserver
+          value: $(params.smtpserver)
+        - name: emailsubject
+          value: "OpenShift Pipeline failed for project $(context.pipelineRun.namespace) at scan-sourcecode"
+        - name: emailbody
+          value: "Source code scan by trivy failed.\n$(tasks.scan-sourcecode.results.log)"
+        - name: emailsender
+          value: yuichi.mizutani@systemi.co.jp
+        - name: emailrecipients
+          value: yuichi.mizutani@systemi.co.jp
+        - name: exitcode
+          value: 1
+      taskRef:
+        name: sendmail
+      runAfter:
+        - scan-sourcecode
+
 #    - name: unit-tests
 #      taskRef:
 #        name: maven
@@ -111,7 +139,8 @@ spec:
           value:
             - package
       runAfter:
-        - scan-sourcecode
+         - notify-trivy-source-scan-error
+#        - scan-sourcecode
 #        - unit-tests
       workspaces:
         - name: source
@@ -165,3 +194,25 @@ spec:
       taskRef:
         kind: Task
         name: update-deployment
+
+  finally:
+    - name: notify-clone-failure
+      when:
+        - input: $(tasks.git-clone.status)
+          operator: in
+          values: ["Failed"]
+      params:
+        - name: smtpserver
+          value: $(params.smtpserver)
+        - name: emailsubject
+          value: "OpenShift Pipeline failed for project $(context.pipelineRun.namespace) at git-clone"
+        - name: emailbody
+          value: "Git clone failed. Please check if the URL below is valid.\nURL: $(params.git-url)"
+        - name: emailsender
+          value: yuichi.mizutani@systemi.co.jp
+        - name: emailrecipients
+          value: yuichi.mizutani@systemi.co.jp
+        - name: exitcode
+          value: 0
+      taskRef:
+        name: sendmail

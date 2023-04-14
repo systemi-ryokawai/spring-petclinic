@@ -28,6 +28,9 @@ spec:
       description: a flag enabling Air-Gapped mode
       name: AIR_GAPPED_ENABLED
       type: string
+  results:
+    - name: log
+    - name: status
   steps:
     - args:
         - $(params.ARGS)
@@ -50,7 +53,13 @@ spec:
           cmd="$cmd $(params.IMAGE_PATH)"
           echo "Running trivy task with command below"
           echo "$cmd"
-          $cmd
+          set -o pipefail
+          $cmd | tee $(results.log.path)
+          if [ $? -ne 0 ]; then
+            echo -n "Failed" > $(results.status.path)
+          else
+            echo -n "Success" > $(results.status.path)
+          fi
       workingDir: $(workspaces.manifest-dir.path)
   workspaces:
     - name: manifest-dir
