@@ -1,4 +1,3 @@
-# https://github.com/tektoncd/triggers/blob/main/docs/eventlisteners.md
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
@@ -19,3 +18,4 @@ spec:
       interceptors:
         - github:
             eventTypes: ["pull_request"]
+# https://github.com/tektoncd/triggers/blob/main/docs/eventlisteners.md
