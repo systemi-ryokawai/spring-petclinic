@@ -41,4 +41,11 @@ spec:
           name: build-and-deploy
         workspaces:
           - name: app-source
+            persistentVolumeClaim:
+              claimName: maven-repo-pvc
           - name: maven-settings
+            persistentVolumeClaim:
+              claimName: maven-repo-pvc
+          - name: gitlab-basic-auth
+            secret:
+              secretName: sample-gitlab-secret
