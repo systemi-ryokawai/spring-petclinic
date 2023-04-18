@@ -1,0 +1,22 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: gitlab-listener-trigger
+spec:
+  interceptors:
+    - name: "verify-gitlab-payload"
+      ref:
+        name: "gitlab"
+        kind: ClusterInterceptor
+      params:
+        - name: secretRef
+          value:
+            secretName: "gitlab-secret"
+            secretKey: "secretToken"
+        - name: eventTypes
+          value:
+            - "Push Hook"
+  bindings:
+    - ref: ci-pipeline-binding
+  template:
+    ref: template

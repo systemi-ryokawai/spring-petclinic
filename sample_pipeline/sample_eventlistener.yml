@@ -3,19 +3,9 @@ kind: EventListener
 metadata:
   name: ci-pipeline
 spec:
-  namespaceSelector: {}
-  resources: {}
   serviceAccountName: pipeline
   triggers:
-    - bindings:
-        - kind: TriggerBinding
-          ref: ci-pipeline-binding
-        - name: message
-          value: Hello from the Triggers EventListener!
-      name: ci-pipeline
-      template:
-        ref: ci-pipeline-template
-      interceptors:
-        - github:
-            eventTypes: ["pull_request"]
-# https://github.com/tektoncd/triggers/blob/main/docs/eventlisteners.md
+    - triggerRef: gitlab-listener-trigger
+  resources:
+    kubernetesResource:
+      serviceType: NodePort
