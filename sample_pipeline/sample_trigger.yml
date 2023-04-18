@@ -11,7 +11,7 @@ spec:
       params:
         - name: secretRef
           value:
-            secretName: "gitlab-secret"
+            secretName: "gitlab-pipeline-secret"
             secretKey: "secretToken"
         - name: eventTypes
           value:
@@ -19,4 +19,4 @@ spec:
   bindings:
     - ref: ci-pipeline-binding
   template:
-    ref: template
+    ref: ci-pipeline-template
